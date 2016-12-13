@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>LUIS app to Excel converter</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+</head>
+
+<body>
+
+    <h1>LUIS app to Excel converter</h1>
+    
+    <p>This small script converts the utterances from your LUIS app (exported as JSON from <a href="http://LUIS.ai">LUIS.ai</a>) into an Excel table containing your intents and phrases. </p>
+    
+    <p>This is useful if you want to train the bot in another language (meaning a separate LUIS app) using the same phrases as you used before.</p>
+    
+    <h3>How to use</h3>
+    
+    <ul>
+        <li>Go to LUIS.ai an on main page, click Export App.</li>
+        <li>Open the downloaded .json file in Notepad</li>
+        <li>Copy the whole text and paste it into the box below</li>
+        <li>Click Download to download the Excel file containing the utterances</li>
+    </ul>
+    
+    <h3>Paste the JSON into the box below:</h3>
+    
+    <textarea id="pastedJson" cols="100" rows="4">
+    
+    </textarea>
+    
+    <div>
+        <button type="button" id="convertButton">Convert to Excel</button>
+    </div>    
+    
+    <div>
+        <p id="errorMessage"></p>
+    </div>
+    
+    <div id="results">
+    
+    </div>
+    
+  <script>
+    
+      function StartConversion() {
+          var json = document.getElementById("pastedJson").value;
+          var o;
+          
+          try { 
+            o = JSON.parse(json);
+          }
+          catch (ex) {
+              document.getElementById("errorMessage").innerHTML = "Unable to convert. Check that the JSON is complete and valid.";
+              return;
+          }
+          
+          if (!o.utterances || o.utterances.length === 0) {
+              document.getElementById("errorMessage").innerHTML = "JSON doesn't contain any utterances.";
+              return;
+          }
+          
+          var html = "";
+          for (var i = 0; i < o.utterances.length; i++) {
+              html += "<tr>";
+              html += "<td>" + (i+1) + ".</td>";
+              html += "<td>" + o.utterances[i].intent + "</td>";
+              html += "<td>" + o.utterances[i].text + "</td></tr>";
+          }
+          
+          var table = '<div><button type="button" onclick="location.href = toCSV();">Download to Excel</button></div>';
+          
+          table += '<table id="resultsTable" style="width: 100%; vertical-align: top;">' + 
+                        '<tbody>' +
+                            '<tr>' + 
+                                '<th>#</th>' +
+                                '<th>Intent</th>' + 
+                                '<th>Utterance</th>' +
+                            '</tr>' +
+                            html +
+                        '</tbody>' +
+                    '</table>';
+        
+            document.getElementById("results").innerHTML = table;
+          
+      }
+      
+        // CSV conversion code below
+          
+        function toCSV() {
+            var options = {
+                separator: ',',
+                header: ["#", "Intent", "Utterance"],
+                headerSelector: 'th',
+                columnSelector: 'td',
+                delivery: 'download', // popup, value, download
+                filename: 'converted_utterances.csv', // filename to download
+                transform_gt_lt: true // make &gt; and &lt; to > and <
+            };
+
+            var csvData = [];
+            var headerArr = [];
+            var el = this;
+
+            //header
+            var numCols = options.header.length;
+            var tmpRow = []; // construct header avalible array
+
+            if (numCols > 0) {
+                for (var i = 0; i < numCols; i++) {
+                    tmpRow[tmpRow.length] = formatData(options.header[i]);
+                }
+            } else {
+                //removed
+            }
+
+            row2CSV(tmpRow);
+
+            // actual data
+            var allRows = document.querySelectorAll("#results tr");
+
+            for (var i = 1; i < allRows.length; i++) {
+                var tmpRow = [];
+                var theseTds = allRows[i].querySelectorAll("td");
+                for (var j = 0; j < theseTds.length; j++) { 
+                    tmpRow[tmpRow.length] = formatData(theseTds[j].innerHTML);
+                }
+                row2CSV(tmpRow);
+            }
+            
+            
+            if (options.delivery == 'popup') {
+                var mydata = csvData.join('\n');
+                if(options.transform_gt_lt){
+                    mydata=sinri_recover_gt_and_lt(mydata);
+                }
+                return popup(mydata);
+            }
+            else if(options.delivery == 'download') {
+                var mydata = csvData.join('\n');
+                if(options.transform_gt_lt){
+                    mydata=sinri_recover_gt_and_lt(mydata);
+                }
+                var url='data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(mydata);
+                //window.open(url);
+                return url;
+            } 
+            else {
+                var mydata = csvData.join('\n');
+                if(options.transform_gt_lt){
+                    mydata=sinri_recover_gt_and_lt(mydata);
+                }
+                return mydata;
+            }
+
+            function sinri_recover_gt_and_lt(input){
+                var regexp=new RegExp(/&gt;/g);
+                var input=input.replace(regexp,'>');
+                var regexp=new RegExp(/&lt;/g);
+                var input=input.replace(regexp,'<');
+                return input;
+            }
+
+            function row2CSV(tmpRow) {
+                var tmp = tmpRow.join('') // to remove any blank rows
+                if (tmpRow.length > 0 && tmp != '') {
+                    var mystr = tmpRow.join(options.separator);
+                    csvData[csvData.length] = mystr;
+                }
+            }
+
+            function formatData(input) {
+                // replace " with “
+                var regexp = new RegExp(/["]/g);
+                var output = input.replace(regexp, "“");
+                //HTML
+                var regexp = new RegExp(/\<[^\<]+\>/g);
+                var output = output.replace(regexp, "");
+                output = output.replace(/&nbsp;/gi,' '); //replace &nbsp;
+                if (output == "") return '';
+                return '"' + output.trim() + '"';
+            }
+
+            function popup(data) {
+                var generator = window.open('', 'csv', 'height=400,width=600');
+                generator.document.write('<html><head><title>CSV</title>');
+                generator.document.write('</head><body >');
+                generator.document.write('<textArea cols=70 rows=15 wrap="off" >');
+                generator.document.write(data);
+                generator.document.write('</textArea>');
+                generator.document.write('</body></html>');
+                generator.document.close();
+                return true;
+            }
+        }
+      
+      document.getElementById("convertButton").addEventListener("click", StartConversion);
+      
+      
+  </script>
+</body>
+</html>
