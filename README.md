@@ -13,7 +13,7 @@ This is useful if you want to train the bot in another language (meaning a separ
 
 - Open the downloaded .json file in Notepad
 
-- Copy the whole text and paste it into the box below
+- Copy the whole text, open the HTML file from this repository, an paste it into the box in the HTML page.
 
 - Click Download to download the Excel file containing the utterances
 
