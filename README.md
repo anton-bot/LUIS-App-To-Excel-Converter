@@ -9,10 +9,13 @@ This is useful if you want to train the bot in another language (meaning a separ
 
 ##How to use
 
--Go to LUIS.ai an on main page, click Export App.
--Open the downloaded .json file in Notepad
--Copy the whole text and paste it into the box below
--Click Download to download the Excel file containing the utterances
+- Go to LUIS.ai an on main page, click Export App.
+
+- Open the downloaded .json file in Notepad
+
+- Copy the whole text and paste it into the box below
+
+- Click Download to download the Excel file containing the utterances
 
 #License and Usage
 
